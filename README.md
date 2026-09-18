@@ -33,20 +33,13 @@ Toda a concepção, requisitos de negócio e especificações técnicas foram co
 
 ---
 
-## 🛠️ Instalação Rápida
+## 🛠️ Tecnologias Utilizadas
 
-```bash
-# Clone o repositório
-git clone https://github.com/ChrysthianChrisley/monitor_SEI.git
-cd monitor_SEI
-
-# Crie um ambiente virtual (recomendado)
-python -m venv .venv
-.venv\Scripts\activate
-
-# Instale as dependências
-pip install -r requirements.txt
-```
+- **Linguagem:** Python 3.10+
+- **Automação RPA / Navegação:** Selenium WebDriver
+- **Interface Gráfica:** CustomTkinter
+- **Manipulação de Dados:** Pandas / OpenPyXL
+- **Versionamento:** Git & GitHub
 
 ---
 
@@ -67,3 +60,52 @@ monitor_SEI/
 ├── requirements.txt                   # Dependências Python
 └── README.md                          # Este documento
 ```
+
+---
+
+## ⚙️ Instalação e Execução
+
+1. Clone o repositório:
+   ```bash
+   git clone https://github.com/ChrysthianChrisley/monitor_SEI.git
+   cd monitor_SEI
+   ```
+
+2. Crie e ative um ambiente virtual (recomendado):
+   ```bash
+   python -m venv .venv
+   .venv\Scripts\activate
+   ```
+
+3. Instale as dependências:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Execute o aplicativo:
+   ```bash
+   python main.py
+   # Ou execute pelo script:
+   executar.bat
+   ```
+
+---
+
+## 🤝 Contribuição
+
+Contribuições são sempre bem-vindas!
+1. Faça um fork do repositório
+2. Crie uma branch para sua feature (`git checkout -b feature/minha-feature`)
+3. Faça commit das suas alterações (`git commit -m 'feat: minha nova feature'`)
+4. Envie para o branch (`git push origin feature/minha-feature`)
+5. Abra um Pull Request
+
+---
+
+## 📄 Licença
+
+Distribuído sob a licença MIT.
+
+---
+
+Desenvolvido por [Chrysthian Chrisley](https://github.com/ChrysthianChrisley).
