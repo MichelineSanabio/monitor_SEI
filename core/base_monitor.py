@@ -39,6 +39,13 @@ class BaseMonitor(ABC):
         """
         pass
 
+    def obter_link_processo(self, numero_processo: str) -> str:
+        """
+        Retorna o link direto do processo (se fornecido na fonte de dados).
+        Caso retorne string vazia, o sistema utilizará a busca pelo número do processo.
+        """
+        return ""
+
     @abstractmethod
     def inspecionar_processo(self, navigator: Any, numero_processo: str) -> Dict[str, Any]:
         """

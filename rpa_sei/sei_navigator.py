@@ -162,12 +162,40 @@ class SeiNavigator:
         except Exception as e:
             self.logger(f"Não foi possível alternar unidade pelo seletor padrão: {e}")
 
-    def abrir_processo(self, numero_processo: str, senha: str = "", usuario: str = "") -> bool:
+    def abrir_processo(self, numero_processo: str, link: str = "", senha: str = "", usuario: str = "") -> bool:
         """
-        Realiza a pesquisa rápida do processo e lida com credenciais se for sigiloso.
-        Suporta variações de formato, submissão via ENTER, clique em resultados e novas janelas.
+        Abre o processo no SEI.
+        1. Se houver 'link' direto informado na planilha: tenta abrir navegando diretamente para a URL.
+        2. Se não houver link (ou se a tentativa por link falhar): recorre à digitação do número
+           do processo no campo de busca rápida da janela (canto superior direito).
         """
         proc_limpo = str(numero_processo).strip()
+        link_limpo = str(link).strip() if link else ""
+
+        # Tentativa 1: Abrir diretamente pelo link caso fornecido
+        if link_limpo and ("http" in link_limpo.lower() or "controlador.php" in link_limpo.lower()):
+            self.logger(f"Processo {proc_limpo} possui link direto na planilha. Acessando URL...")
+            self.voltar_para_raiz()
+            try:
+                self.driver.get(link_limpo)
+                time.sleep(1.5)
+
+                # Se abriu em nova janela ou aba, alterna o foco
+                if len(self.driver.window_handles) > 1:
+                    self.driver.switch_to.window(self.driver.window_handles[-1])
+
+                # Trata credenciais se for processo sigiloso
+                self.auth_handler.tratar_processo_sigiloso(senha=senha, usuario=usuario)
+
+                # Aguarda renderização do frame pai de visualização
+                self.entrar_frame_visualizacao()
+                self.logger(f"Processo {proc_limpo} aberto com sucesso pelo link direto!")
+                return True
+            except Exception as e_link:
+                self.logger(f"Aviso: Não foi possível abrir pelo link direto ({e_link}). Recorrendo ao campo de busca...")
+
+        # Tentativa 2: Busca digitando o número no campo de pesquisa (janela da direita)
+        self.logger(f"Digitando processo {proc_limpo} no campo de busca da janela...")
         if not proc_limpo:
             return False
 
@@ -214,7 +242,6 @@ class SeiNavigator:
                 self.voltar_para_raiz()
                 if not self.driver.find_elements(By.ID, SELETORES_SEI["iframe_visualizacao"]):
                     # Procura por link do processo na tabela de resultados
-                    # Procura por termo com e sem pontuações
                     apenas_digitos = "".join(re.findall(r"\d+", termo))
                     xpath_link = (
                         f"//a[contains(text(), '{termo}') "

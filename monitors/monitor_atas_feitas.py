@@ -19,6 +19,8 @@ class MonitorAtasFeitas(BaseMonitor):
     def __init__(self):
         # Mapeamento do maior número de ata já conhecido por processo: { "processo": maior_numero_ata }
         self.processos_max_ata: Dict[str, int] = {}
+        # Mapeamento do link direto por processo: { "processo": "https://..." }
+        self.processos_links: Dict[str, str] = {}
         self.caminho_arquivo_customizado: str = ""
 
     @property
@@ -31,14 +33,59 @@ class MonitorAtasFeitas(BaseMonitor):
         # Nome exibido na interface gráfica do usuário
         return "Monitoramento atas feitas"
 
+    def obter_link_processo(self, numero_processo: str) -> str:
+        """Retorna o link direto do processo informado na planilha, se existir."""
+        return self.processos_links.get(str(numero_processo).strip(), "")
+
+    def _extrair_hiperlinks_openpyxl(self, caminho: Path) -> Dict[str, str]:
+        """Lê hiperlinks nativos embutidos nas células do Excel via openpyxl."""
+        links_map: Dict[str, str] = {}
+        try:
+            import openpyxl
+            wb = openpyxl.load_workbook(caminho, data_only=False)
+            sheet = wb.active
+            headers = [str(c.value or "").strip().lower() for c in sheet[1]]
+            idx_proc = 0
+            idx_link = None
+            for i, h in enumerate(headers):
+                if any(t in h for t in ["processo", "proc", "sei"]):
+                    idx_proc = i
+                    break
+            for i, h in enumerate(headers):
+                if any(t in h for t in ["link", "url", "href"]):
+                    idx_link = i
+                    break
+            if idx_link is None:
+                if len(headers) >= 5:
+                    idx_link = 4
+                elif len(headers) >= 4:
+                    idx_link = 3
+
+            for row in sheet.iter_rows(min_row=2):
+                if len(row) <= idx_proc:
+                    continue
+                proc_val = str(row[idx_proc].value or "").strip()
+                if not proc_val or proc_val.lower() == "none" or proc_val.lower().startswith("processo"):
+                    continue
+                link_val = ""
+                if idx_link is not None and len(row) > idx_link:
+                    cell = row[idx_link]
+                    if cell.hyperlink and cell.hyperlink.target:
+                        link_val = str(cell.hyperlink.target).strip()
+                    elif cell.value:
+                        val_str = str(cell.value).strip()
+                        if "http" in val_str or "controlador.php" in val_str:
+                            link_val = val_str
+                if link_val:
+                    links_map[proc_val] = link_val
+        except Exception:
+            pass
+        return links_map
+
     def carregar_alvos(self, params: Dict[str, Any]) -> List[str]:
         """
-        Lê a planilha de origem para obter os processos e calcular a maior ata já registrada
-        para cada processo.
-        Estrutura esperada da planilha origem:
-          - Coluna 1: Número do Processo
-          - Coluna 2: Data da Primeira Assinatura
-          - Coluna 3: Número da Ata
+        Lê a planilha de origem para obter os processos, calcular a maior ata já registrada
+        e capturar o link direto do processo se fornecido (4ª ou 5ª coluna).
         """
         caminho_custom = self.caminho_arquivo_customizado or params.get("caminho") or params.get("arquivo")
         if caminho_custom:
@@ -70,6 +117,7 @@ class MonitorAtasFeitas(BaseMonitor):
         # Identifica as colunas relevantes
         col_processo = None
         col_ata = None
+        col_link = None
 
         for c in df.columns:
             nome_col = str(c).strip().lower()
@@ -78,13 +126,24 @@ class MonitorAtasFeitas(BaseMonitor):
             # Evita casar a palavra "data" (d-ata) como coluna de ata
             if not col_ata and ("ata" in nome_col) and not any(ignora in nome_col for ignora in ["data", "date", "secretar"]):
                 col_ata = c
+            if not col_link and any(termo in nome_col for termo in ["link", "url", "href", "acesso"]):
+                col_link = c
 
         if not col_processo and len(df.columns) > 0:
             col_processo = df.columns[0]
         if not col_ata and len(df.columns) >= 3:
             col_ata = df.columns[2]
+        if not col_link:
+            if len(df.columns) >= 5:
+                col_link = df.columns[4]
+            elif len(df.columns) >= 4:
+                col_link = df.columns[3]
+
+        # Extrai links nativos do Excel se houver
+        links_nativos = self._extrair_hiperlinks_openpyxl(caminho)
 
         self.processos_max_ata.clear()
+        self.processos_links.clear()
 
         for _, linha in df.iterrows():
             proc_val = str(linha[col_processo]).strip()
@@ -104,6 +163,19 @@ class MonitorAtasFeitas(BaseMonitor):
             else:
                 if num_ata > self.processos_max_ata[proc_val]:
                     self.processos_max_ata[proc_val] = num_ata
+
+            # Captura link direto se presente
+            link_val = ""
+            if col_link and pd.notna(linha[col_link]):
+                l_cand = str(linha[col_link]).strip()
+                if "http" in l_cand.lower() or "controlador.php" in l_cand.lower():
+                    link_val = l_cand
+
+            if not link_val and proc_val in links_nativos:
+                link_val = links_nativos[proc_val]
+
+            if link_val:
+                self.processos_links[proc_val] = link_val
 
         # Retorna a lista única e ordenada de processos a inspecionar
         return list(self.processos_max_ata.keys())

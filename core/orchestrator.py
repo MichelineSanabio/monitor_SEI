@@ -76,8 +76,18 @@ class Orchestrator:
                 self.logger(f"[{idx}/{total}] Inspecionando processo: {proc}")
                 
                 try:
-                    # Abre o processo e trata eventual credencial de sigiloso (RN04)
-                    abriu_com_sucesso = navigator.abrir_processo(proc, senha=senha, usuario=usuario)
+                    # Verifica se há link direto informado para o processo na planilha
+                    link_proc = ""
+                    if hasattr(monitor, "obter_link_processo"):
+                        link_proc = monitor.obter_link_processo(proc)
+
+                    # Abre o processo (por link ou campo de busca da janela) e trata eventual credencial (RN04)
+                    abriu_com_sucesso = navigator.abrir_processo(
+                        numero_processo=proc,
+                        link=link_proc,
+                        senha=senha,
+                        usuario=usuario
+                    )
                     
                     if not abriu_com_sucesso:
                         self.logger(f"Aviso: Falha ao abrir o processo {proc} (não localizado ou restrito).")
