@@ -55,9 +55,17 @@ class Orchestrator:
         resultados = []
 
         try:
-            # 2.1 Login Inicial no SEI-RJ (SIP) com Órgão UERJ
-            if usuario and senha:
-                navigator.realizar_login_inicial(usuario=usuario, senha=senha, orgao=orgao)
+            # 2.1 Garante que a sessão está autenticada no SEI (automático ou manual via Gov.br / 2FA)
+            self.logger("Verificando autenticação no SEI...")
+            autenticado = navigator.garantir_login_ativo(
+                timeout=90,
+                usuario=usuario,
+                senha=senha,
+                orgao=orgao
+            )
+            if not autenticado:
+                self.logger("ERRO: Autenticação no SEI não foi confirmada dentro do prazo. Monitoramento cancelado.")
+                return ""
 
             # 3. Troca e Persistência de Unidade (RN01)
             self.logger(f"Alternando contexto no SEI para a unidade '{unidade}'...")

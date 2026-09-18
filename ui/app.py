@@ -205,9 +205,17 @@ class AppMonitorSEI(ctk.CTk):
         self.caixa_logs.pack(padx=20, pady=(2, 15), fill="both", expand=True)
 
     def log(self, mensagem: str):
-        """Atualiza a caixa de log de forma thread-safe."""
+        """Atualiza a caixa de log de forma thread-safe, grava em arquivo e exibe no console."""
         horario = time.strftime("%H:%M:%S")
-        self.after(0, self._inserir_texto_log, f"[{horario}] {mensagem}\n")
+        linha = f"[{horario}] {mensagem}\n"
+        print(linha, end="")
+        try:
+            log_file = Path(__file__).resolve().parent.parent / "data" / "execucao.log"
+            with open(log_file, "a", encoding="utf-8") as f:
+                f.write(linha)
+        except Exception:
+            pass
+        self.after(0, self._inserir_texto_log, linha)
 
     def _inserir_texto_log(self, texto: str):
         self.caixa_logs.insert("end", texto)

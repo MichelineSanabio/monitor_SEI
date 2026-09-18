@@ -4,9 +4,11 @@ Isola a interação com elementos do DOM e o gerenciamento de iframes (ifrVisual
 """
 
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 import time
+import re
 from typing import Callable, List, Optional
 from config.settings import SELETORES_SEI, DEFAULT_TIMEOUT, SHORT_TIMEOUT
 from .auth import AuthHandler
@@ -24,6 +26,73 @@ class SeiNavigator:
     def realizar_login_inicial(self, usuario: str, senha: str, orgao: str = "UERJ") -> bool:
         """Executa a rotina de login no SEI-RJ caso a tela de autenticação esteja aberta."""
         return self.auth_handler.realizar_login_inicial(usuario=usuario, senha=senha, orgao=orgao)
+
+    def _esta_autenticado(self) -> bool:
+        """Checa presença de elementos típicos do SEI após login (pesquisa rápida, combo de unidades ou menu)."""
+        try:
+            self.voltar_para_raiz()
+            # Se encontrar campo de pesquisa rápida ou combo de unidades, está autenticado
+            if self.driver.find_elements(By.ID, SELETORES_SEI["campo_pesquisa"]):
+                return True
+            if self.driver.find_elements(By.ID, SELETORES_SEI["combo_unidade"]):
+                return True
+            # Se a barra de sistema estiver presente e não for a página de login
+            if "login.php" not in self.driver.current_url.lower():
+                if self.driver.find_elements(By.ID, "navInfraBarraNavegacao") or self.driver.find_elements(By.ID, "divInfraBarraSistemaPadrao"):
+                    return True
+        except Exception:
+            pass
+        return False
+
+    def garantir_login_ativo(self, timeout: int = 90, usuario: str = "", senha: str = "", orgao: str = "UERJ") -> bool:
+        """
+        Verifica se o usuário já está autenticado no SEI.
+        Se estiver na tela de login, tenta realizar login inicial caso usuario/senha informados.
+        Caso contrário (ou se exigir Gov.br / 2FA / validação), aguarda até `timeout` segundos
+        para que o usuário finalize a autenticação na janela do navegador.
+        """
+        self.voltar_para_raiz()
+
+        # 1. Verifica se já está autenticado (sessão anterior ou cookies)
+        if self._esta_autenticado():
+            self.logger("Sessão autenticada identificada no SEI.")
+            return True
+
+        # 2. Se informou usuário e senha na interface, tenta login automatizado
+        if usuario and senha:
+            self.logger(f"Tentando login automático no SEI para o órgão '{orgao}'...")
+            try:
+                self.realizar_login_inicial(usuario=usuario, senha=senha, orgao=orgao)
+            except Exception as e:
+                self.logger(f"Aviso no login automático: {e}")
+
+            time.sleep(2)
+            if self._esta_autenticado():
+                self.logger("Login automático concluído com sucesso!")
+                return True
+
+        # 3. Aguarda o usuário autenticar manualmente no navegador se necessário
+        self.logger(
+            "Atenção: Aguardando autenticação no SEI... "
+            "Por favor, conclua o acesso no navegador aberto (Gov.br, Certificado Digital ou Usuário/Senha)."
+        )
+
+        inicio = time.time()
+        mensagem_intervalo = 0
+        while time.time() - inicio < timeout:
+            time.sleep(2)
+            if self._esta_autenticado():
+                self.logger("Login no SEI confirmado com sucesso! Prosseguindo...")
+                return True
+
+            mensagem_intervalo += 2
+            if mensagem_intervalo >= 15:
+                restante = int(timeout - (time.time() - inicio))
+                self.logger(f"Ainda aguardando login no SEI... (tempo restante: {restante}s)")
+                mensagem_intervalo = 0
+
+        self.logger(f"Tempo limite ({timeout}s) esgotado aguardando login no SEI.")
+        return False
 
     # -------------------------------------------------------------
     # Gestão de Contexto e Iframes
@@ -78,40 +147,97 @@ class SeiNavigator:
             opcao_correspondente = next((opt for opt in opcoes if sigla_unidade.lower() in opt.lower()), None)
             
             if opcao_correspondente:
+                try:
+                    if select.first_selected_option.text.strip() == opcao_correspondente.strip():
+                        self.logger(f"Unidade já está definida como: {opcao_correspondente}")
+                        return
+                except Exception:
+                    pass
+
                 select.select_by_visible_text(opcao_correspondente)
                 self.logger(f"Unidade alterada para: {opcao_correspondente}")
+                time.sleep(2)
             else:
                 self.logger(f"Aviso: Unidade '{sigla_unidade}' não encontrada no combo. Mantendo a atual.")
-            
-            time.sleep(2)
         except Exception as e:
             self.logger(f"Não foi possível alternar unidade pelo seletor padrão: {e}")
 
     def abrir_processo(self, numero_processo: str, senha: str = "", usuario: str = "") -> bool:
         """
         Realiza a pesquisa rápida do processo e lida com credenciais se for sigiloso.
+        Suporta variações de formato, submissão via ENTER, clique em resultados e novas janelas.
         """
-        self.voltar_para_raiz()
-        try:
-            campo_busca = WebDriverWait(self.driver, DEFAULT_TIMEOUT).until(
-                EC.presence_of_element_located((By.ID, SELETORES_SEI["campo_pesquisa"]))
-            )
-            campo_busca.clear()
-            campo_busca.send_keys(numero_processo)
-
-            btn_busca = self.driver.find_element(By.ID, SELETORES_SEI["btn_pesquisa"])
-            btn_busca.click()
-
-            # Trata eventual janela/modal de senha para processos sigilosos
-            self.auth_handler.tratar_processo_sigiloso(senha=senha, usuario=usuario)
-
-            # Aguarda renderização do frame pai de visualização
-            self.entrar_frame_visualizacao()
-            return True
-
-        except Exception as e:
-            self.logger(f"Falha ao pesquisar/abrir o processo {numero_processo}: {e}")
+        proc_limpo = str(numero_processo).strip()
+        if not proc_limpo:
             return False
+
+        # Formatos alternativos: exato e sem prefixo SEI- (ou vice-versa)
+        formatos_busca = [proc_limpo]
+        if proc_limpo.upper().startswith("SEI-"):
+            formatos_busca.append(proc_limpo[4:].strip())
+        else:
+            formatos_busca.append(f"SEI-{proc_limpo}")
+
+        for termo in formatos_busca:
+            self.voltar_para_raiz()
+            try:
+                campo_busca = WebDriverWait(self.driver, DEFAULT_TIMEOUT).until(
+                    EC.presence_of_element_located((By.ID, SELETORES_SEI["campo_pesquisa"]))
+                )
+                campo_busca.clear()
+                campo_busca.send_keys(termo)
+                time.sleep(0.3)
+                campo_busca.send_keys(Keys.RETURN)
+
+                # Fallback: clica no botão de pesquisa caso a tecla Enter não tenha submetido
+                time.sleep(0.6)
+                botoes = self.driver.find_elements(
+                    By.XPATH, 
+                    "//*[@id='btnPesquisaRapida' or @name='btnPesquisaRapida' or @id='lnkPesquisaRapida' or contains(@title, 'Pesquisa Rápida')]"
+                )
+                if botoes and botoes[0].is_displayed():
+                    try:
+                        botoes[0].click()
+                    except Exception:
+                        pass
+
+                time.sleep(1.5)
+
+                # 1. Se abriu em nova janela ou aba (pop-up), muda para a mais recente
+                if len(self.driver.window_handles) > 1:
+                    self.driver.switch_to.window(self.driver.window_handles[-1])
+
+                # 2. Trata eventual janela/modal de senha para processos sigilosos
+                self.auth_handler.tratar_processo_sigiloso(senha=senha, usuario=usuario)
+
+                # 3. Verifica se caiu em tela de resultado de busca (pesquisa_rapida com links)
+                self.voltar_para_raiz()
+                if not self.driver.find_elements(By.ID, SELETORES_SEI["iframe_visualizacao"]):
+                    # Procura por link do processo na tabela de resultados
+                    # Procura por termo com e sem pontuações
+                    apenas_digitos = "".join(re.findall(r"\d+", termo))
+                    xpath_link = (
+                        f"//a[contains(text(), '{termo}') "
+                        f"or contains(@href, 'procedimento_trabalhar') "
+                        f"or contains(@href, '{apenas_digitos}')]"
+                    )
+                    links = self.driver.find_elements(By.XPATH, xpath_link)
+                    for lk in links:
+                        if lk.is_displayed():
+                            lk.click()
+                            time.sleep(1.5)
+                            break
+
+                # 4. Aguarda renderização do frame pai de visualização
+                self.entrar_frame_visualizacao()
+                return True
+
+            except Exception as e:
+                self.logger(f"Aviso na tentativa de busca por '{termo}': {e}")
+                continue
+
+        self.logger(f"Falha ao pesquisar/abrir o processo {numero_processo} após tentar formatos alternativos.")
+        return False
 
     # -------------------------------------------------------------
     # Extração de Dados da Árvore e Histórico

@@ -73,22 +73,30 @@ class AuthHandler:
             btn_acessar.click()
             time.sleep(2)
 
-            # 5. Verifica se houve mensagem de erro de autenticação
+            # 5. Aguarda resposta e verifica se houve mensagem de erro de autenticação
+            time.sleep(2)
+
+            # O SEI-RJ possui uma div estática #divInfraNavegadorAviso com 'alert alert-danger' que NÃO é erro de login.
+            # Filtramos especificamente mensagens reais de erro de autenticação:
             erros = driver.find_elements(
                 By.XPATH, 
-                "//*[contains(text(), 'Usuário ou senha inválidos') or contains(text(), 'Dados inválidos') or contains(@class, 'alert-danger')]"
+                "//*[(contains(text(), 'Usuário ou senha inválidos') or contains(text(), 'Dados inválidos') or contains(text(), 'Senha inválida') or contains(text(), 'Órgão inválido')) and not(@id='divInfraNavegadorAviso') and not(ancestor-or-self::*[@id='divInfraNavegadorAviso'])]"
             )
             for err in erros:
                 if err.is_displayed() and err.text.strip():
-                    self.falhas_consecutivas += 1
                     msg_erro = err.text.strip()
+                    self.falhas_consecutivas += 1
                     self.logger(f"Falha no login SEI-RJ: {msg_erro}")
                     if self.falhas_consecutivas >= self.LIMITE_FALHAS:
                         raise PermissionError(f"Bloqueio preventivo: {msg_erro}")
                     return False
 
-            self.logger("Login no SEI-RJ realizado com sucesso!")
-            self.falhas_consecutivas = 0
+            # Verifica se já saiu da tela de login (txtUsuario sumiu ou URL mudou)
+            if "login.php" not in driver.current_url.lower() or not driver.find_elements(By.ID, SELETORES_SEI["campo_usuario_login"]):
+                self.logger("Login no SEI-RJ realizado com sucesso!")
+                self.falhas_consecutivas = 0
+                return True
+
             return True
 
         except PermissionError:

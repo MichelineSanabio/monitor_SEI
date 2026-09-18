@@ -40,15 +40,23 @@ class MonitorAtasFeitas(BaseMonitor):
           - Coluna 2: Data da Primeira Assinatura
           - Coluna 3: Número da Ata
         """
-        caminho = Path(self.caminho_arquivo_customizado) if self.caminho_arquivo_customizado else (INPUTS_DIR / "origem_atas.xlsx")
+        caminho_custom = self.caminho_arquivo_customizado or params.get("caminho") or params.get("arquivo")
+        if caminho_custom:
+            caminho = Path(caminho_custom)
+        else:
+            # Procura de forma inteligente arquivos relevantes na pasta data/inputs/
+            candidatos = (
+                [f for f in INPUTS_DIR.glob("*controle*.xlsx")] +
+                [f for f in INPUTS_DIR.glob("*ata*.xlsx") if f.name != "origem_atas.xlsx"] +
+                [INPUTS_DIR / "origem_atas.xlsx"] +
+                [f for f in INPUTS_DIR.glob("*.xlsx") if f.name != "processos.xlsx"] +
+                list(INPUTS_DIR.glob("*.xlsx"))
+            )
+            arquivos_existentes = [f for f in candidatos if f.exists()]
+            caminho = arquivos_existentes[0] if arquivos_existentes else (INPUTS_DIR / "origem_atas.xlsx")
 
         if not caminho.exists():
-            # Tenta encontrar qualquer arquivo de atas ou processos na pasta de inputs
-            arquivos = list(INPUTS_DIR.glob("origem_atas*.xlsx")) + list(INPUTS_DIR.glob("processos*.xlsx")) + list(INPUTS_DIR.glob("*.xlsx"))
-            if arquivos:
-                caminho = arquivos[0]
-            else:
-                return []
+            return []
 
         try:
             df = pd.read_excel(caminho, dtype=str)
@@ -60,19 +68,21 @@ class MonitorAtasFeitas(BaseMonitor):
             return []
 
         # Identifica as colunas relevantes
-        # Coluna 0: Processo
-        # Coluna 2: Número da Ata (se houver pelo menos 3 colunas)
-        col_processo = df.columns[0]
+        col_processo = None
         col_ata = None
 
-        if len(df.columns) >= 3:
+        for c in df.columns:
+            nome_col = str(c).strip().lower()
+            if not col_processo and any(termo in nome_col for termo in ["processo", "proc", "sei"]):
+                col_processo = c
+            # Evita casar a palavra "data" (d-ata) como coluna de ata
+            if not col_ata and ("ata" in nome_col) and not any(ignora in nome_col for ignora in ["data", "date", "secretar"]):
+                col_ata = c
+
+        if not col_processo and len(df.columns) > 0:
+            col_processo = df.columns[0]
+        if not col_ata and len(df.columns) >= 3:
             col_ata = df.columns[2]
-        else:
-            # Procura coluna que contenha 'ata' ou 'numero' no cabeçalho
-            for c in df.columns:
-                if "ata" in str(c).lower() or "numero" in str(c).lower():
-                    col_ata = c
-                    break
 
         self.processos_max_ata.clear()
 
@@ -100,9 +110,9 @@ class MonitorAtasFeitas(BaseMonitor):
 
     def inspecionar_processo(self, navigator: Any, numero_processo: str) -> Dict[str, Any]:
         """
-        Percorre a árvore de documentos procurando por 'Ata de Reunião [número]'.
-        Filtra apenas atas com número maior que a maior ata já conhecida para aquele processo.
-        Para cada nova ata localizada, extrai a data da primeira assinatura.
+        Percorre a árvore de documentos procurando por Atas de Reunião.
+        Suporta tanto números sequenciais de ata quanto IDs numéricos de documentos do SEI (ex: 140451633).
+        Para cada nova ata localizada além da maior registrada na origem, extrai data da 1ª assinatura e secretário.
         """
         max_ata_conhecida = self.processos_max_ata.get(numero_processo, 0)
         
@@ -110,34 +120,61 @@ class MonitorAtasFeitas(BaseMonitor):
         nos_detalhados = navigator.listar_elementos_nos_arvore()
         novas_atas_encontradas = []
 
-        # Regex para identificar 'Ata de Reunião [número]' ou 'Ata [número]'
-        padrao_ata = re.compile(r"ata(?:\s+de\s+reuni[ãa]o)?\s*(?:n[º°.]?\s*|-?\s*)(\d+)", re.IGNORECASE)
-
         for item in nos_detalhados:
             texto_no = item["texto"]
             elemento_no = item["elemento"]
 
-            match = padrao_ata.search(texto_no)
-            if match:
-                num_ata = int(match.group(1))
+            # Verifica se o nó faz menção a ata
+            if "ata" not in texto_no.lower():
+                continue
 
-                # Regra: Somente atas com número maior que a última indicada na planilha de origem
-                if num_ata > max_ata_conhecida:
-                    # Extrai data da primeira assinatura e nome do secretário clicando no documento
-                    detalhes_ass = navigator.extrair_detalhes_assinatura_documento(
-                        elemento_no=elemento_no,
-                        nome_documento=texto_no
-                    )
-                    data_assinatura = detalhes_ass.get("data_assinatura", "")
-                    nome_secretario = detalhes_ass.get("secretario", "")
+            # 1. Extrai ID numérico do documento no SEI (geralmente entre parênteses, ex: (140451633))
+            match_doc_id = re.search(r"\((\d{6,12})\)", texto_no)
+            doc_id = int(match_doc_id.group(1)) if match_doc_id else None
 
-                    novas_atas_encontradas.append({
-                        "numero_ata": num_ata,
-                        "data_primeira_assinatura": data_assinatura if data_assinatura else "Não assinada / Minuta",
-                        "secretario": nome_secretario,
-                        "nome_documento_sei": texto_no,
-                        "assinado": bool(data_assinatura)
-                    })
+            # 2. Extrai número sequencial ou identificador da ata
+            match_seq = re.search(r"ata(?:\s+de\s+reuni[ãa]o)?\s*(?:n[º°.]?\s*|-?\s*)(\d+)", texto_no, re.IGNORECASE)
+            seq_num = int(match_seq.group(1)) if match_seq else None
+
+            # Se não achou doc_id em parênteses, mas o número for grande (> 1.000.000), é o próprio doc_id
+            if not doc_id and seq_num and seq_num > 1000000:
+                doc_id = seq_num
+
+            # 3. Determina se é nova em relação à maior ata da planilha
+            eh_nova = False
+            num_exibicao = seq_num or doc_id or 0
+
+            if max_ata_conhecida > 1000000:
+                # Planilha de origem usa ID de documento SEI (ex: 140451633)
+                if doc_id and doc_id > max_ata_conhecida:
+                    eh_nova = True
+                    num_exibicao = doc_id
+            elif max_ata_conhecida > 0:
+                # Planilha de origem usa número sequencial (ex: 1, 2, 3)
+                if seq_num and seq_num > max_ata_conhecida:
+                    eh_nova = True
+                    num_exibicao = seq_num
+            else:
+                # Sem ata prévia na planilha de origem: qualquer ata encontrada é nova
+                eh_nova = True
+
+            if eh_nova:
+                # Extrai data da primeira assinatura e nome do secretário clicando no documento
+                detalhes_ass = navigator.extrair_detalhes_assinatura_documento(
+                    elemento_no=elemento_no,
+                    nome_documento=texto_no
+                )
+                data_assinatura = detalhes_ass.get("data_assinatura", "")
+                nome_secretario = detalhes_ass.get("secretario", "")
+
+                novas_atas_encontradas.append({
+                    "numero_ata": num_exibicao,
+                    "doc_id": doc_id or "",
+                    "data_primeira_assinatura": data_assinatura if data_assinatura else "Não assinada / Minuta",
+                    "secretario": nome_secretario,
+                    "nome_documento_sei": texto_no,
+                    "assinado": bool(data_assinatura)
+                })
 
         # Ordena as novas atas encontradas pelo número da ata
         novas_atas_encontradas.sort(key=lambda x: x["numero_ata"])
