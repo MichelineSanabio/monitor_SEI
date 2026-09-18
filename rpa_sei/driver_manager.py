@@ -35,6 +35,10 @@ class DriverManager:
         options.add_argument("--disable-notifications")
         options.add_argument("--window-size=1366,768")
 
+        options.add_argument("--disable-blink-features=AutomationControlled")
+        options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        options.add_experimental_option("useAutomationExtension", False)
+
         if self.perfil_persistente:
             # Reutiliza diretório de perfil para salvar cookies de sessão
             options.add_argument(f"--user-data-dir={str(PROFILES_DIR)}")
@@ -46,7 +50,25 @@ class DriverManager:
             chrome_opts = ChromeOptions()
             if self.headless:
                 chrome_opts.add_argument("--headless=new")
+            chrome_opts.add_argument("--disable-blink-features=AutomationControlled")
+            chrome_opts.add_experimental_option("excludeSwitches", ["enable-automation"])
+            chrome_opts.add_experimental_option("useAutomationExtension", False)
             self.driver = webdriver.Chrome(options=chrome_opts)
+
+        # Oculta sinalizador navigator.webdriver via CDP para evitar bloqueios por WAF/Anti-bot
+        try:
+            self.driver.execute_cdp_cmd(
+                "Page.addScriptToEvaluateOnNewDocument",
+                {
+                    "source": """
+                        Object.defineProperty(navigator, 'webdriver', {
+                            get: () => undefined
+                        });
+                    """
+                }
+            )
+        except Exception:
+            pass
 
         self.driver.maximize_window()
         self.driver.get(SEI_URL)

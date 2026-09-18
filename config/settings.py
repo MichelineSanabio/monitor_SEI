@@ -70,3 +70,12 @@ SELETORES_SEI = {
     # Tabela de histórico de andamentos
     "primeira_linha_historico": "//table[contains(@class, 'infraTable')]//tbody/tr[2] | //table[@id='tblHistorico']//tr[2]"
 }
+
+# 5. Parâmetros de Simulação de Comportamento Humano (Anti-bloqueio / Proteção de Conexão)
+SIMULAR_HUMANO = True
+PAUSA_ENTRE_PROCESSOS_MIN = 3.0   # segundos mínimos de espera entre cada processo
+PAUSA_ENTRE_PROCESSOS_MAX = 6.0   # segundos máximos de espera entre cada processo
+PAUSA_ENTRE_ACOES_MIN = 1.0       # segundos mínimos entre ações/cliques na tela
+PAUSA_ENTRE_ACOES_MAX = 2.5       # segundos máximos entre ações/cliques na tela
+DIGITACAO_CADENCIA_MIN = 0.04     # segundos por caractere digitado (simula digitação natural)
+DIGITACAO_CADENCIA_MAX = 0.11     # segundos máximos por caractere digitado

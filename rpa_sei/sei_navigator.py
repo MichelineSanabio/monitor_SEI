@@ -9,8 +9,18 @@ from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
 import time
 import re
+import random
 from typing import Callable, List, Optional
-from config.settings import SELETORES_SEI, DEFAULT_TIMEOUT, SHORT_TIMEOUT
+from config.settings import (
+    SELETORES_SEI, 
+    DEFAULT_TIMEOUT, 
+    SHORT_TIMEOUT,
+    SIMULAR_HUMANO,
+    PAUSA_ENTRE_ACOES_MIN,
+    PAUSA_ENTRE_ACOES_MAX,
+    DIGITACAO_CADENCIA_MIN,
+    DIGITACAO_CADENCIA_MAX
+)
 from .auth import AuthHandler
 
 class SeiNavigator:
@@ -18,10 +28,28 @@ class SeiNavigator:
     Controla ações atômicas dentro do SEI e a navegação controlada por iframes.
     """
 
-    def __init__(self, driver, logger: Optional[Callable[[str], None]] = None):
+    def __init__(self, driver, logger: Optional[Callable[[str], None]] = None, simular_humano: bool = SIMULAR_HUMANO):
         self.driver = driver
         self.logger = logger or (lambda msg: None)
         self.auth_handler = AuthHandler(driver, logger=self.logger)
+        self.simular_humano = simular_humano
+
+    def pausa_humana(self, min_s: float = PAUSA_ENTRE_ACOES_MIN, max_s: float = PAUSA_ENTRE_ACOES_MAX):
+        """Pausa com tempo variável e jitter aleatório para emular comportamento humano."""
+        if self.simular_humano:
+            time.sleep(random.uniform(min_s, max_s))
+
+    def digitar_como_humano(self, elemento, texto: str):
+        """Digita texto caractere por caractere simulando a cadência natural de digitação humana."""
+        elemento.clear()
+        if self.simular_humano:
+            time.sleep(random.uniform(0.2, 0.4))
+            for char in texto:
+                elemento.send_keys(char)
+                time.sleep(random.uniform(DIGITACAO_CADENCIA_MIN, DIGITACAO_CADENCIA_MAX))
+            time.sleep(random.uniform(0.3, 0.6))
+        else:
+            elemento.send_keys(texto)
 
     def realizar_login_inicial(self, usuario: str, senha: str, orgao: str = "UERJ") -> bool:
         """Executa a rotina de login no SEI-RJ caso a tela de autenticação esteja aberta."""
@@ -212,9 +240,8 @@ class SeiNavigator:
                 campo_busca = WebDriverWait(self.driver, DEFAULT_TIMEOUT).until(
                     EC.presence_of_element_located((By.ID, SELETORES_SEI["campo_pesquisa"]))
                 )
-                campo_busca.clear()
-                campo_busca.send_keys(termo)
-                time.sleep(0.3)
+                self.digitar_como_humano(campo_busca, termo)
+                self.pausa_humana(0.4, 0.8)
                 campo_busca.send_keys(Keys.RETURN)
 
                 # Fallback: clica no botão de pesquisa caso a tecla Enter não tenha submetido
@@ -326,15 +353,16 @@ class SeiNavigator:
             # 1. Clica no documento na árvore via JavaScript para garantir clique mesmo com scroll
             self.entrar_frame_arvore()
             self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", elemento_no)
-            time.sleep(0.5)
+            self.pausa_humana(0.5, 1.2)
             self.driver.execute_script("arguments[0].click();", elemento_no)
-            time.sleep(1.5)
+            self.pausa_humana(1.5, 3.0)
 
             # 2. Entra no iframe da direita onde o texto do documento é renderizado
             self.entrar_frame_conteudo()
             corpo_doc = WebDriverWait(self.driver, SHORT_TIMEOUT + 2).until(
                 EC.presence_of_element_located((By.TAG_NAME, "body"))
             )
+            self.pausa_humana(0.5, 1.0)
             texto_doc = corpo_doc.text
 
             # Extração da data da primeira assinatura:
