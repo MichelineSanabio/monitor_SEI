@@ -1,0 +1,26 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Caches e diretórios de execução
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Ambientes virtuais
+.venv/
+env/
+venv/
+ENV/
+
+# Perfis de sessão do navegador e dados locais
+data/browser_profile/*
+!data/browser_profile/.gitkeep
+data/outputs/*
+!data/outputs/.gitkeep
+
+# Distribuição e PyInstaller
+build/
+dist/
+*.spec
