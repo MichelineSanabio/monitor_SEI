@@ -123,11 +123,18 @@ class Orchestrator:
 
                     if not abriu_com_sucesso:
                         self.logger(f"Aviso: Falha ao abrir o processo {proc} (não localizado ou restrito).")
-                        resultados.append({
+                        res_erro = {
                             "processo": proc,
                             "status": "ERRO_ABERTURA",
                             "detalhe": "Não foi possível carregar a tela do processo"
-                        })
+                        }
+                        resultados.append(res_erro)
+                        # Persiste incrementalmente a linha verificada
+                        try:
+                            linhas_inc = monitor.estruturar_linhas_exportacao([res_erro])
+                            ExcelExporter.exportar(nome_modulo=monitor.nome_identificador, linhas=linhas_inc)
+                        except Exception:
+                            pass
                         time.sleep(1)
                         continue
 
@@ -139,6 +146,13 @@ class Orchestrator:
                     novas = dados_processo.get("quantidade_novas_atas", 0)
                     self.logger(f"  → {novas} nova(s) ata(s) identificada(s) para o processo {proc}.")
                     resultados.append(dados_processo)
+
+                    # Persiste incrementalmente a linha verificada na planilha Excel
+                    try:
+                        linhas_inc = monitor.estruturar_linhas_exportacao([dados_processo])
+                        ExcelExporter.exportar(nome_modulo=monitor.nome_identificador, linhas=linhas_inc)
+                    except Exception:
+                        pass
 
                 except InvalidSessionIdException as e_sessao:
                     # O Edge fechou a conexão (crash, pop-up sigiloso que matou a sessão, etc.)
@@ -187,11 +201,17 @@ class Orchestrator:
 
                 except Exception as erro_processo:
                     self.logger(f"Erro ao inspecionar {proc}: {erro_processo}")
-                    resultados.append({
+                    res_exec_erro = {
                         "processo": proc,
                         "status": "ERRO_EXECUCAO",
                         "detalhe": str(erro_processo)
-                    })
+                    }
+                    resultados.append(res_exec_erro)
+                    try:
+                        linhas_inc = monitor.estruturar_linhas_exportacao([res_exec_erro])
+                        ExcelExporter.exportar(nome_modulo=monitor.nome_identificador, linhas=linhas_inc)
+                    except Exception:
+                        pass
                     # Garante que volta para a raiz antes de tentar o próximo processo
                     try:
                         navigator.voltar_para_raiz()
