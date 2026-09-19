@@ -19,6 +19,13 @@ data/browser_profile/*
 !data/browser_profile/.gitkeep
 data/outputs/*
 !data/outputs/.gitkeep
+data/credenciais.config
+credenciais.config
+*.config
+!*.exemplo
+!credenciais.config.exemplo
+!data/credenciais.config.exemplo
+*.env
 
 # Distribuição e PyInstaller
 build/

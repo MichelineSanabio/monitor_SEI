@@ -378,10 +378,17 @@ class AppMonitorSEI(ctk.CTk):
 
 ## 7. Boas Práticas de Segurança e Integridade
 
-1. **Proteção de Credenciais:**
-   - As senhas nunca devem ser gravadas em arquivos locais em texto claro (`plain text`).
-   - O campo na interface utiliza máscara de digitação (`show="*"`).
-   - Opcionalmente, pode-se ler de variáveis de ambiente com `os.getenv("SEI_PASSWORD")`.
+1. **Proteção de Credenciais e Arquivo Local de Configuração:**
+   - O repositório disponibiliza um arquivo modelo versionado: `credenciais.config.exemplo`.
+   - Para agilizar o uso em diferentes computadores sem a necessidade de redigitar login e senha a cada execução, o usuário pode copiar o modelo para `data/credenciais.config`:
+     ```ini
+     # Arquivo local de credenciais do SEI-RJ (Não commitado no Git)
+     usuario=brpersoncpf=xxxxxxxx
+     senha=xxxxxxx
+     orgao=UERJ
+     ```
+   - O arquivo `credenciais.config` está explicitamente cadastrado no `.gitignore`, garantindo que senhas locais jamais sejam enviadas ao GitHub.
+   - O campo de senha na interface gráfica utiliza máscara de digitação (`show="*"`).
 2. **Prevenção de Bloqueio de Conta (Lockout):**
    - No SEI, tentativas consecutivas com senha inválida bloqueiam o acesso do servidor público.
    - O robô implementa contagem de falha de autenticação: se a confirmação de senha falhar em um processo, a execução é interrompida imediatamente para averiguação pelo usuário humano.

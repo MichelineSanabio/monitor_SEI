@@ -82,7 +82,21 @@ monitor_SEI/
    pip install -r requirements.txt
    ```
 
-4. Execute o aplicativo:
+4. Configure suas credenciais de acesso local (opcional, para não precisar digitar a cada execução):
+   - Copie o arquivo modelo `credenciais.config.exemplo` para `data/credenciais.config`:
+     ```bash
+     copy credenciais.config.exemplo data\credenciais.config
+     ```
+   - Abra `data/credenciais.config` e insira seu usuário e senha:
+     ```ini
+     # Arquivo local de credenciais do SEI-RJ (Não commitado no Git)
+     usuario=brpersoncpf=05089752630
+     senha=SuaSenhaAqui@123
+     orgao=UERJ
+     ```
+   > 🔒 **Nota de Segurança:** O arquivo `credenciais.config` está incluído no `.gitignore` e **nunca** será enviado para o repositório remoto.
+
+5. Execute o aplicativo:
    ```bash
    python main.py
    # Ou execute pelo script:
@@ -108,4 +122,4 @@ Distribuído sob a licença MIT.
 
 ---
 
-Desenvolvido por [Chrysthian Chrisley](https://github.com/ChrysthianChrisley).
+Desenvolvido por [Micheline Sanabio](https://github.com/MichelineSanabio).

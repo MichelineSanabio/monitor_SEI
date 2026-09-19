@@ -35,7 +35,15 @@ class ExcelExporter(BaseExporter):
             df_novos["data_consulta"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
         # Salva o arquivo Excel com formatação básica
-        with pd.ExcelWriter(caminho_saida, engine="openpyxl") as writer:
-            df_novos.to_excel(writer, sheet_name=nome_modulo[:31], index=False)
-
-        return str(caminho_saida)
+        try:
+            with pd.ExcelWriter(caminho_saida, engine="openpyxl") as writer:
+                df_novos.to_excel(writer, sheet_name=nome_modulo[:31], index=False)
+            return str(caminho_saida)
+        except PermissionError:
+            # Caso o arquivo esteja aberto no Excel pelo usuário, salva com timestamp alternativo
+            ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+            caminho_alternativo = OUTPUTS_DIR / f"{nome_modulo}_{ts}.xlsx"
+            with pd.ExcelWriter(caminho_alternativo, engine="openpyxl") as writer:
+                df_novos.to_excel(writer, sheet_name=nome_modulo[:31], index=False)
+            print(f"[AVISO] '{caminho_saida.name}' estava aberto no Excel. Dados salvos como '{caminho_alternativo.name}'.")
+            return str(caminho_alternativo)

@@ -9,7 +9,12 @@ import time
 from tkinter import filedialog
 from pathlib import Path
 from typing import List
-from config.settings import UNIDADES_PADRAO, INPUTS_DIR
+from config.settings import (
+    UNIDADES_PADRAO, 
+    INPUTS_DIR, 
+    obter_credenciais_salvas, 
+    salvar_credenciais_locais
+)
 from core.base_monitor import BaseMonitor
 from core.orchestrator import Orchestrator
 
@@ -204,6 +209,24 @@ class AppMonitorSEI(ctk.CTk):
         self.caixa_logs = ctk.CTkTextbox(self.frame_conteudo, width=480, height=140)
         self.caixa_logs.pack(padx=20, pady=(2, 15), fill="both", expand=True)
 
+        # Carrega credenciais salvas do arquivo local (data/credenciais.config)
+        self._carregar_credenciais_salvas()
+
+    def _carregar_credenciais_salvas(self):
+        """Preenche automaticamente os campos de usuário e senha a partir de data/credenciais.config."""
+        cred = obter_credenciais_salvas()
+        if cred.get("usuario"):
+            self.txt_usuario.delete(0, "end")
+            self.txt_usuario.insert(0, cred["usuario"])
+        if cred.get("senha"):
+            self.txt_senha.delete(0, "end")
+            self.txt_senha.insert(0, cred["senha"])
+        if cred.get("orgao"):
+            try:
+                self.combo_orgao.set(cred["orgao"])
+            except Exception:
+                pass
+
     def log(self, mensagem: str):
         """Atualiza a caixa de log de forma thread-safe, grava em arquivo e exibe no console."""
         horario = time.strftime("%H:%M:%S")
@@ -246,6 +269,10 @@ class AppMonitorSEI(ctk.CTk):
             senha = self.txt_senha.get().strip()
             orgao = self.combo_orgao.get().strip() or "UERJ"
             headless = bool(self.chk_headless.get())
+
+            # Persiste credenciais localmente para execuções futuras
+            if usuario or senha:
+                salvar_credenciais_locais(usuario, senha, orgao)
 
             caminho_planilha = self.txt_arquivo.get().strip()
 

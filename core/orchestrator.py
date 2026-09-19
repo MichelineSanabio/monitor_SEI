@@ -70,9 +70,35 @@ class Orchestrator:
                 self.logger("ERRO: Autenticação no SEI não foi confirmada dentro do prazo. Monitoramento cancelado.")
                 return ""
 
+            # --- DIAGNÓSTICO: Registra o estado da página após o login ---
+            try:
+                from config.settings import OUTPUTS_DIR
+                from selenium.webdriver.common.by import By as _By
+                import time as _t
+
+                navigator.voltar_para_raiz()
+                url_atual = driver.current_url
+                titulo_pag = driver.title
+                self.logger(f"[DIAG] URL após login: {url_atual}")
+                self.logger(f"[DIAG] Título da página: {titulo_pag}")
+
+                # Lista todos os iframes de 1º nível
+                iframes = driver.find_elements(_By.TAG_NAME, "iframe")
+                ids_iframes = [f.get_attribute("id") or f.get_attribute("name") or "(sem id)" for f in iframes]
+                self.logger(f"[DIAG] Iframes encontrados ({len(iframes)}): {ids_iframes}")
+
+                # Verifica elementos-chave do SEI
+                tem_pesquisa = bool(driver.find_elements(_By.ID, "txtPesquisaRapida"))
+                tem_unidade  = bool(driver.find_elements(_By.ID, "selInfraUnidades"))
+                self.logger(f"[DIAG] txtPesquisaRapida visível: {tem_pesquisa} | selInfraUnidades visível: {tem_unidade}")
+            except Exception as e_diag:
+                self.logger(f"[DIAG] Erro no diagnóstico: {e_diag}")
+            # --- FIM DO DIAGNÓSTICO ---
+
             # 3. Troca e Persistência de Unidade (RN01)
             self.logger(f"Alternando contexto no SEI para a unidade '{unidade}'...")
             navigator.trocar_unidade(unidade)
+
 
             # 4. Iteração nos Processos com Resiliência (RN06)
             idx = 0
@@ -106,9 +132,12 @@ class Orchestrator:
                         continue
 
                     # Executa a inspeção especializada definida pelo módulo
+                    self.logger(f"Inspecionando documentos e atas do processo {proc}...")
                     dados_processo = monitor.inspecionar_processo(navigator, proc)
                     dados_processo["processo"] = proc
                     dados_processo["status"] = "SUCESSO"
+                    novas = dados_processo.get("quantidade_novas_atas", 0)
+                    self.logger(f"  → {novas} nova(s) ata(s) identificada(s) para o processo {proc}.")
                     resultados.append(dados_processo)
 
                 except InvalidSessionIdException as e_sessao:
@@ -187,10 +216,13 @@ class Orchestrator:
         linhas_formatadas = monitor.estruturar_linhas_exportacao(resultados)
         
         self.logger(f"Gravando arquivo {monitor.nome_identificador}.xlsx...")
-        caminho_arquivo = ExcelExporter.exportar(
-            nome_modulo=monitor.nome_identificador,
-            linhas=linhas_formatadas
-        )
-
-        self.logger(f"Exportação concluída com sucesso em: {caminho_arquivo}")
-        return caminho_arquivo
+        try:
+            caminho_arquivo = ExcelExporter.exportar(
+                nome_modulo=monitor.nome_identificador,
+                linhas=linhas_formatadas
+            )
+            self.logger(f"Exportação concluída com sucesso em: {caminho_arquivo}")
+            return caminho_arquivo
+        except Exception as e_exp:
+            self.logger(f"Aviso ao exportar relatório final: {e_exp}")
+            return ""
