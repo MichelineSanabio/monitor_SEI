@@ -5,10 +5,13 @@ Coordena a esteira de execução: Entrada -> Automação RPA -> Inspeção -> Ex
 
 from typing import Callable, Optional
 import time
+import random
 from .base_monitor import BaseMonitor
 from rpa_sei.driver_manager import DriverManager
 from rpa_sei.sei_navigator import SeiNavigator
 from exporters.excel_exporter import ExcelExporter
+from selenium.common.exceptions import InvalidSessionIdException
+from config.settings import PAUSA_ENTRE_PROCESSOS_MIN, PAUSA_ENTRE_PROCESSOS_MAX
 
 class Orchestrator:
     """
@@ -72,9 +75,12 @@ class Orchestrator:
             navigator.trocar_unidade(unidade)
 
             # 4. Iteração nos Processos com Resiliência (RN06)
-            for idx, proc in enumerate(processos, start=1):
+            idx = 0
+            while idx < total:
+                proc = processos[idx]
+                idx += 1
                 self.logger(f"[{idx}/{total}] Inspecionando processo: {proc}")
-                
+
                 try:
                     # Verifica se há link direto informado para o processo na planilha
                     link_proc = ""
@@ -88,7 +94,7 @@ class Orchestrator:
                         senha=senha,
                         usuario=usuario
                     )
-                    
+
                     if not abriu_com_sucesso:
                         self.logger(f"Aviso: Falha ao abrir o processo {proc} (não localizado ou restrito).")
                         resultados.append({
@@ -96,6 +102,7 @@ class Orchestrator:
                             "status": "ERRO_ABERTURA",
                             "detalhe": "Não foi possível carregar a tela do processo"
                         })
+                        time.sleep(1)
                         continue
 
                     # Executa a inspeção especializada definida pelo módulo
@@ -103,6 +110,51 @@ class Orchestrator:
                     dados_processo["processo"] = proc
                     dados_processo["status"] = "SUCESSO"
                     resultados.append(dados_processo)
+
+                except InvalidSessionIdException as e_sessao:
+                    # O Edge fechou a conexão (crash, pop-up sigiloso que matou a sessão, etc.)
+                    # Registra o processo atual como falha e tenta reiniciar o driver
+                    self.logger(f"Sessão do navegador perdida ao processar {proc}: {e_sessao}")
+                    resultados.append({
+                        "processo": proc,
+                        "status": "ERRO_SESSAO",
+                        "detalhe": "Sessão do navegador encerrada inesperadamente"
+                    })
+
+                    # Encerra o driver corrompido
+                    try:
+                        driver_mgr.fechar()
+                    except Exception:
+                        pass
+
+                    if idx >= total:
+                        # Não há mais processos — encerra o loop
+                        break
+
+                    # Tenta reiniciar o driver e reautenticar para continuar os próximos processos
+                    self.logger("Tentando reiniciar o navegador para continuar a execução...")
+                    try:
+                        driver_mgr = DriverManager(headless=headless)
+                        driver = driver_mgr.iniciar_driver()
+                        navigator = SeiNavigator(driver, logger=self.logger)
+
+                        reautenticado = navigator.garantir_login_ativo(
+                            timeout=90,
+                            usuario=usuario,
+                            senha=senha,
+                            orgao=orgao
+                        )
+                        if not reautenticado:
+                            self.logger("ERRO: Não foi possível reautenticar após reinicialização. Encerrando.")
+                            break
+
+                        navigator.trocar_unidade(unidade)
+                        self.logger(f"Navegador reiniciado. Retomando a partir do processo {idx + 1}/{total}.")
+                    except Exception as e_reinicio:
+                        self.logger(f"Falha ao reiniciar o navegador: {e_reinicio}. Encerrando execução.")
+                        break
+
+                    continue
 
                 except Exception as erro_processo:
                     self.logger(f"Erro ao inspecionar {proc}: {erro_processo}")
@@ -112,14 +164,23 @@ class Orchestrator:
                         "detalhe": str(erro_processo)
                     })
                     # Garante que volta para a raiz antes de tentar o próximo processo
-                    navigator.voltar_para_raiz()
+                    try:
+                        navigator.voltar_para_raiz()
+                    except Exception:
+                        pass
 
-                time.sleep(1)
+                # Pausa humana entre processos — evita que o SEI detecte cadência de bot
+                pausa = random.uniform(PAUSA_ENTRE_PROCESSOS_MIN, PAUSA_ENTRE_PROCESSOS_MAX)
+                self.logger(f"Aguardando {pausa:.1f}s antes do próximo processo...")
+                time.sleep(pausa)
 
         finally:
             # 5. Fechamento seguro do WebDriver
             self.logger("Encerrando sessão do navegador...")
-            driver_mgr.fechar()
+            try:
+                driver_mgr.fechar()
+            except Exception:
+                pass
 
         # 6. Estruturação e Exportação (RN05)
         self.logger("Formatando dados para exportação...")

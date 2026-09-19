@@ -7,6 +7,11 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait, Select
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import (
+    WebDriverException,
+    InvalidSessionIdException,
+    NoSuchWindowException,
+)
 import time
 import re
 import random
@@ -190,12 +195,49 @@ class SeiNavigator:
         except Exception as e:
             self.logger(f"Não foi possível alternar unidade pelo seletor padrão: {e}")
 
+    def _localizar_campo_pesquisa(self):
+        """
+        Localiza o campo de busca rápida (txtPesquisaRapida) do SEI.
+        Primeiro tenta no contexto raiz; se não encontrar, procura dentro dos iframes
+        de primeiro nível (o SEI-RJ pode renderizar a barra de ferramentas em um iframe).
+        Retorna o elemento encontrado ou levanta TimeoutException.
+        """
+        self.voltar_para_raiz()
+
+        # Tentativa 1: campo visível no contexto raiz
+        elementos = self.driver.find_elements(By.ID, SELETORES_SEI["campo_pesquisa"])
+        if elementos and elementos[0].is_displayed():
+            return elementos[0]
+
+        # Tentativa 2: procura dentro de iframes de 1º nível
+        iframes = self.driver.find_elements(By.TAG_NAME, "iframe")
+        for frame in iframes:
+            try:
+                self.driver.switch_to.frame(frame)
+                elems = self.driver.find_elements(By.ID, SELETORES_SEI["campo_pesquisa"])
+                if elems and elems[0].is_displayed():
+                    return elems[0]
+                self.voltar_para_raiz()
+            except Exception:
+                self.voltar_para_raiz()
+
+        # Tentativa 3: aguarda com WebDriverWait no contexto raiz (fallback original)
+        self.voltar_para_raiz()
+        return WebDriverWait(self.driver, DEFAULT_TIMEOUT).until(
+            EC.presence_of_element_located((By.ID, SELETORES_SEI["campo_pesquisa"]))
+        )
+
     def abrir_processo(self, numero_processo: str, link: str = "", senha: str = "", usuario: str = "") -> bool:
         """
         Abre o processo no SEI.
         1. Se houver 'link' direto informado na planilha: tenta abrir navegando diretamente para a URL.
         2. Se não houver link (ou se a tentativa por link falhar): recorre à digitação do número
            do processo no campo de busca rápida da janela (canto superior direito).
+
+        Tratamentos adicionais:
+        - Localiza o campo de busca dentro de iframes caso não exista no contexto raiz.
+        - Detecta e recupera erro 'target frame detached' com refresh + renavegação.
+        - Propaga InvalidSessionIdException para que o orquestrador possa reiniciar o driver.
         """
         proc_limpo = str(numero_processo).strip()
         link_limpo = str(link).strip() if link else ""
@@ -219,10 +261,13 @@ class SeiNavigator:
                 self.entrar_frame_visualizacao()
                 self.logger(f"Processo {proc_limpo} aberto com sucesso pelo link direto!")
                 return True
+            except InvalidSessionIdException:
+                # Sessão inválida — propaga para o orquestrador tentar reconectar
+                raise
             except Exception as e_link:
                 self.logger(f"Aviso: Não foi possível abrir pelo link direto ({e_link}). Recorrendo ao campo de busca...")
 
-        # Tentativa 2: Busca digitando o número no campo de pesquisa (janela da direita)
+        # Tentativa 2: Busca digitando o número no campo de pesquisa
         self.logger(f"Digitando processo {proc_limpo} no campo de busca da janela...")
         if not proc_limpo:
             return False
@@ -235,32 +280,34 @@ class SeiNavigator:
             formatos_busca.append(f"SEI-{proc_limpo}")
 
         for termo in formatos_busca:
-            self.voltar_para_raiz()
             try:
-                campo_busca = WebDriverWait(self.driver, DEFAULT_TIMEOUT).until(
-                    EC.presence_of_element_located((By.ID, SELETORES_SEI["campo_pesquisa"]))
-                )
+                # --- Localiza o campo de pesquisa (raiz ou iframe) ---
+                campo_busca = self._localizar_campo_pesquisa()
                 self.digitar_como_humano(campo_busca, termo)
                 self.pausa_humana(0.4, 0.8)
                 campo_busca.send_keys(Keys.RETURN)
 
                 # Fallback: clica no botão de pesquisa caso a tecla Enter não tenha submetido
                 time.sleep(0.6)
-                botoes = self.driver.find_elements(
-                    By.XPATH, 
-                    "//*[@id='btnPesquisaRapida' or @name='btnPesquisaRapida' or @id='lnkPesquisaRapida' or contains(@title, 'Pesquisa Rápida')]"
-                )
-                if botoes and botoes[0].is_displayed():
-                    try:
+                try:
+                    self.voltar_para_raiz()
+                    botoes = self.driver.find_elements(
+                        By.XPATH,
+                        "//*[@id='btnPesquisaRapida' or @name='btnPesquisaRapida' or @id='lnkPesquisaRapida' or contains(@title, 'Pesquisa Rápida')]"
+                    )
+                    if botoes and botoes[0].is_displayed():
                         botoes[0].click()
-                    except Exception:
-                        pass
+                except Exception:
+                    pass
 
                 time.sleep(1.5)
 
                 # 1. Se abriu em nova janela ou aba (pop-up), muda para a mais recente
-                if len(self.driver.window_handles) > 1:
-                    self.driver.switch_to.window(self.driver.window_handles[-1])
+                try:
+                    if len(self.driver.window_handles) > 1:
+                        self.driver.switch_to.window(self.driver.window_handles[-1])
+                except NoSuchWindowException:
+                    pass
 
                 # 2. Trata eventual janela/modal de senha para processos sigilosos
                 self.auth_handler.tratar_processo_sigiloso(senha=senha, usuario=usuario)
@@ -286,6 +333,24 @@ class SeiNavigator:
                 self.entrar_frame_visualizacao()
                 return True
 
+            except InvalidSessionIdException:
+                # Sessão inválida — propaga para o orquestrador tentar reconectar
+                raise
+            except WebDriverException as e:
+                msg = str(e).lower()
+                if "target frame detached" in msg or "disconnected" in msg:
+                    # Frame desconectado após redirecionamento do SEI — tenta recuperar
+                    self.logger(f"Frame desconectado ao buscar '{termo}'. Tentando recuperar a sessão...")
+                    try:
+                        self.voltar_para_raiz()
+                        self.driver.refresh()
+                        time.sleep(2)
+                    except Exception:
+                        pass
+                    # Não tenta o próximo formato — aborta a busca para este processo
+                    break
+                self.logger(f"Aviso na tentativa de busca por '{termo}': {e}")
+                continue
             except Exception as e:
                 self.logger(f"Aviso na tentativa de busca por '{termo}': {e}")
                 continue

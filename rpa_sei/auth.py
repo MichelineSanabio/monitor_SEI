@@ -10,6 +10,10 @@ import time
 from typing import Callable, Optional
 from config.settings import SELETORES_SEI, SHORT_TIMEOUT
 
+# Timeout maior para aguardar o modal do processo sigiloso (pode demorar para renderizar)
+SIGILOSO_TIMEOUT = 6
+
+
 class AuthHandler:
     """
     Trata telas de login inicial do SEI-RJ (SIP) e solicitação de credenciais de processos sigilosos.
@@ -105,24 +109,67 @@ class AuthHandler:
             self.logger(f"Aviso durante tentativa de login inicial: {e}")
             return False
 
+    def _janela_e_de_sigiloso(self) -> bool:
+        """
+        Verifica se a janela/aba atual corresponde à tela de credencial de processo sigiloso.
+        Distingue do login inicial verificando a URL e o título da página.
+        """
+        try:
+            url_atual = self.driver.current_url.lower()
+            titulo = self.driver.title.lower()
+            # A tela de credencial do sigiloso é uma página separada do login inicial.
+            # Indicadores: URL não é login.php, ou contém 'sigiloso', 'acessar_processo', 'credencial'
+            if "sigiloso" in url_atual or "credencial" in url_atual or "acessar_processo" in url_atual:
+                return True
+            # Se o título da janela mencionar sigilo
+            if "sigiloso" in titulo or "credencial" in titulo or "acesso restrito" in titulo:
+                return True
+            # Se não é a tela de login principal e tem campo de senha e NÃO tem selOrgao
+            # (login principal sempre tem o combo de órgão)
+            tem_campo_senha = bool(self.driver.find_elements(By.XPATH, "//input[@type='password']"))
+            tem_combo_orgao = bool(self.driver.find_elements(By.ID, SELETORES_SEI["combo_orgao_login"]))
+            if tem_campo_senha and not tem_combo_orgao and "login.php" not in url_atual:
+                return True
+        except Exception:
+            pass
+        return False
+
     def tratar_processo_sigiloso(self, senha: str, usuario: str = "") -> bool:
         """
-        Detecta se houve solicitação de credencial (em nova janela ou modal sobreposto).
+        Detecta se houve solicitação de credencial para processo sigiloso
+        (em nova janela pop-up ou modal sobreposto na página atual).
         Preenche a senha se fornecida e valida o desbloqueio.
+
+        Distingue corretamente a tela de credencial sigilosa do login inicial do SEI
+        verificando a URL, o título da janela e a ausência do combo de órgão.
         """
         driver = self.driver
         janela_principal = driver.current_window_handle
+        janela_sigiloso = None
 
-        # 1. Caso abra em janela pop-up separada (window.open)
+        # 1. Verifica se abriu uma nova janela pop-up para credencial do sigiloso
         if len(driver.window_handles) > 1:
             for handle in driver.window_handles:
                 if handle != janela_principal:
                     driver.switch_to.window(handle)
-                    break
+                    time.sleep(1)  # Aguarda a janela pop-up renderizar
+                    if self._janela_e_de_sigiloso():
+                        janela_sigiloso = handle
+                        break
+                    else:
+                        # Não é uma janela de sigiloso — retorna para a principal
+                        driver.switch_to.window(janela_principal)
 
-        # 2. Busca o campo de senha com timeout curto (para não atrasar processos públicos)
+        # 2. Se não achou em janela separada, verifica se é modal na janela atual
+        if not janela_sigiloso:
+            driver.switch_to.window(janela_principal)
+            if not self._janela_e_de_sigiloso():
+                # Não há tela de credencial do sigiloso — processo é público ou já desbloqueado
+                return True
+
+        # 3. Busca o campo de senha com timeout configurável
         try:
-            campo_senha = WebDriverWait(driver, SHORT_TIMEOUT).until(
+            campo_senha = WebDriverWait(driver, SIGILOSO_TIMEOUT).until(
                 EC.presence_of_element_located((By.XPATH, SELETORES_SEI["campo_senha_sigiloso"]))
             )
 
@@ -130,45 +177,99 @@ class AuthHandler:
 
             if not senha:
                 self.logger("Aviso: Nenhuma senha foi informada para desbloquear processo sigiloso.")
+                # Fecha a janela pop-up e retorna para a principal
+                if janela_sigiloso:
+                    try:
+                        driver.close()
+                    except Exception:
+                        pass
+                    driver.switch_to.window(janela_principal)
                 return False
 
             if self.falhas_consecutivas >= self.LIMITE_FALHAS:
                 self.logger("ALERTA DE SEGURANÇA: Limite de falhas de autenticação atingido. Interrompendo para evitar bloqueio.")
+                if janela_sigiloso:
+                    try:
+                        driver.close()
+                    except Exception:
+                        pass
+                    driver.switch_to.window(janela_principal)
                 raise PermissionError("Autenticação interrompida por segurança (prevenção de bloqueio de conta).")
 
-            # Preenche login se solicitado pelo modal
+            # 4. Preenche o campo de usuário se solicitado pelo modal
             campos_user = driver.find_elements(By.XPATH, SELETORES_SEI["campo_usuario_sigiloso"])
             if campos_user and campos_user[0].is_displayed() and usuario:
                 campos_user[0].clear()
                 campos_user[0].send_keys(usuario)
 
-            # Preenche a senha
+            # 5. Preenche a senha
             campo_senha.clear()
             campo_senha.send_keys(senha)
 
-            # Clica no botão de confirmação/liberação
+            # 6. Clica no botão de confirmação/liberação
             btn_confirmar = driver.find_element(By.XPATH, SELETORES_SEI["btn_confirmar_sigiloso"])
             btn_confirmar.click()
-            time.sleep(1.5)
+            time.sleep(2)
 
-            # Valida se ainda há campo de erro ou se a senha foi aceita
-            erros = driver.find_elements(By.XPATH, "//*[contains(text(), 'Senha inválida') or contains(text(), 'Credencial incorreta')]")
-            if erros:
+            # 7. Valida se ainda há campo de erro ou se a senha foi aceita
+            erros = driver.find_elements(
+                By.XPATH,
+                "//*[contains(text(), 'Senha inválida') or contains(text(), 'Credencial incorreta') or contains(text(), 'Acesso negado')]"
+            )
+            erros_visiveis = [e for e in erros if e.is_displayed() and e.text.strip()]
+            if erros_visiveis:
                 self.falhas_consecutivas += 1
                 self.logger(f"Falha de autenticação: Senha incorreta ({self.falhas_consecutivas}/{self.LIMITE_FALHAS}).")
+                if janela_sigiloso:
+                    try:
+                        driver.close()
+                    except Exception:
+                        pass
+                    driver.switch_to.window(janela_principal)
                 return False
 
             self.falhas_consecutivas = 0
             self.logger("Credencial de sigilo confirmada com sucesso.")
 
+            # 8. Se era janela pop-up, aguarda redirecionamento ou fecha a janela
+            if janela_sigiloso:
+                # Aguarda a janela pop-up fechar (o SEI pode fechá-la automaticamente após login)
+                for _ in range(10):
+                    time.sleep(0.5)
+                    handles_atuais = driver.window_handles
+                    if janela_sigiloso not in handles_atuais:
+                        break  # A janela foi fechada automaticamente pelo SEI
+                else:
+                    # Se ainda aberta, fecha manualmente e retorna à principal
+                    try:
+                        if janela_sigiloso in driver.window_handles:
+                            driver.close()
+                    except Exception:
+                        pass
+
+                # Garante retorno para a janela principal
+                try:
+                    driver.switch_to.window(janela_principal)
+                except Exception:
+                    # Se a janela principal também mudou, vai para a última disponível
+                    if driver.window_handles:
+                        driver.switch_to.window(driver.window_handles[-1])
+
         except PermissionError:
             raise
         except Exception:
             # Não solicitou senha (processo já liberado na sessão ou processo público)
-            pass
-
-        # 3. Retorna foco para a janela de trabalho
-        if len(driver.window_handles) == 1:
-            driver.switch_to.window(janela_principal)
+            # Garante retorno para a janela principal em qualquer caso
+            try:
+                if janela_sigiloso and janela_sigiloso in driver.window_handles:
+                    driver.switch_to.window(janela_sigiloso)
+                    driver.close()
+            except Exception:
+                pass
+            try:
+                driver.switch_to.window(janela_principal)
+            except Exception:
+                if driver.window_handles:
+                    driver.switch_to.window(driver.window_handles[-1])
 
         return True

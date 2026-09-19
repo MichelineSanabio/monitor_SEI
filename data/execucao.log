@@ -1,0 +1,348 @@
+[19:33:07] Iniciando esteira para módulo: Monitoramento atas feitas
+[19:33:07] Unidade de lotação selecionada: CINQA
+[19:33:07] Carregando lista de processos alvos...
+[19:33:08] 23 processo(s) localizado(s) para inspeção.
+[19:33:08] Iniciando navegador web (Microsoft Edge / Selenium)...
+[19:33:09] Verificando autenticação no SEI...
+[19:33:10] Tentando login automático no SEI para o órgão 'UERJ'...
+[19:33:10] Tela de login do SEI-RJ identificada. Preenchendo credenciais para órgão 'UERJ'...
+[19:33:15] Login no SEI-RJ realizado com sucesso!
+[19:33:17] Login automático concluído com sucesso!
+[19:33:17] Alternando contexto no SEI para a unidade 'CINQA'...
+[19:33:30] Não foi possível alternar unidade pelo seletor padrão: Message: 
+Stacktrace:
+	msedgedriver!GetHandleVerifier [0x7ff624911bf5+4ca5]
+	msedgedriver!(No symbol) [0x7ff624862774]
+	msedgedriver!GetHandleVerifier [0x7ff624c913cf+38447f]
+	msedgedriver!(No symbol) [0x7ff62463fed8]
+	msedgedriver!(No symbol) [0x7ff62464015a]
+	msedgedriver!(No symbol) [0x7ff62467fd27]
+	msedgedriver!(No symbol) [0x7ff62463615f]
+	msedgedriver!(No symbol) [0x7ff62467d968]
+	msedgedriver!(No symbol) [0x7ff62463599c]
+	msedgedriver!(No symbol) [0x7ff624634c1d]
+	msedgedriver!(No symbol) [0x7ff6246357c3]
+	msedgedriver!(No symbol) [0x7ff62476c442]
+	msedgedriver!(No symbol) [0x7ff62477be69]
+	msedgedriver!GetHandleVerifier [0x7ff6249b9b25+acbd5]
+	msedgedriver!GetHandleVerifier [0x7ff6249c0001+b30b1]
+	msedgedriver!(No symbol) [0x7ff62486e4ef]
+	msedgedriver!(No symbol) [0x7ff624868ec4]
+	msedgedriver!(No symbol) [0x7ff624868fea]
+	msedgedriver!(No symbol) [0x7ff62485a5a8]
+	KERNEL32!BaseThreadInitThunk [0x7ff98936cd87+17]
+	ntdll!RtlUserThreadStart [0x7ff98ab4caec+2c]
+
+[19:33:30] [1/23] Inspecionando processo: SEI-260006/017555/2026
+[19:33:30] Processo SEI-260006/017555/2026 possui link direto na planilha. Acessando URL...
+[19:33:48] Aviso: Não foi possível abrir pelo link direto (Message: 
+Stacktrace:
+	msedgedriver!GetHandleVerifier [0x7ff624911bf5+4ca5]
+	msedgedriver!(No symbol) [0x7ff624862774]
+	msedgedriver!GetHandleVerifier [0x7ff624c913cf+38447f]
+	msedgedriver!(No symbol) [0x7ff62463fed8]
+	msedgedriver!(No symbol) [0x7ff62464015a]
+	msedgedriver!(No symbol) [0x7ff62467fd27]
+	msedgedriver!(No symbol) [0x7ff62463615f]
+	msedgedriver!(No symbol) [0x7ff62467d968]
+	msedgedriver!(No symbol) [0x7ff62463599c]
+	msedgedriver!(No symbol) [0x7ff624634c1d]
+	msedgedriver!(No symbol) [0x7ff6246357c3]
+	msedgedriver!(No symbol) [0x7ff62476c442]
+	msedgedriver!(No symbol) [0x7ff62477be69]
+	msedgedriver!GetHandleVerifier [0x7ff6249b9b25+acbd5]
+	msedgedriver!GetHandleVerifier [0x7ff6249c0001+b30b1]
+	msedgedriver!(No symbol) [0x7ff62486e4ef]
+	msedgedriver!(No symbol) [0x7ff624868ec4]
+	msedgedriver!(No symbol) [0x7ff624868fea]
+	msedgedriver!(No symbol) [0x7ff62485a5a8]
+	KERNEL32!BaseThreadInitThunk [0x7ff98936cd87+17]
+	ntdll!RtlUserThreadStart [0x7ff98ab4caec+2c]
+). Recorrendo ao campo de busca...
+[19:33:48] Digitando processo SEI-260006/017555/2026 no campo de busca da janela...
+[19:34:13] Aviso na tentativa de busca por 'SEI-260006/017555/2026': Message: 
+Stacktrace:
+	msedgedriver!GetHandleVerifier [0x7ff624911bf5+4ca5]
+	msedgedriver!(No symbol) [0x7ff624862774]
+	msedgedriver!GetHandleVerifier [0x7ff624c913cf+38447f]
+	msedgedriver!(No symbol) [0x7ff62463fed8]
+	msedgedriver!(No symbol) [0x7ff62464015a]
+	msedgedriver!(No symbol) [0x7ff62467fd27]
+	msedgedriver!(No symbol) [0x7ff62463615f]
+	msedgedriver!(No symbol) [0x7ff62467d968]
+	msedgedriver!(No symbol) [0x7ff62463599c]
+	msedgedriver!(No symbol) [0x7ff624634c1d]
+	msedgedriver!(No symbol) [0x7ff6246357c3]
+	msedgedriver!(No symbol) [0x7ff62476c442]
+	msedgedriver!(No symbol) [0x7ff62477be69]
+	msedgedriver!GetHandleVerifier [0x7ff6249b9b25+acbd5]
+	msedgedriver!GetHandleVerifier [0x7ff6249c0001+b30b1]
+	msedgedriver!(No symbol) [0x7ff62486e4ef]
+	msedgedriver!(No symbol) [0x7ff624868ec4]
+	msedgedriver!(No symbol) [0x7ff624868fea]
+	msedgedriver!(No symbol) [0x7ff62485a5a8]
+	KERNEL32!BaseThreadInitThunk [0x7ff98936cd87+17]
+	ntdll!RtlUserThreadStart [0x7ff98ab4caec+2c]
+
+[19:34:37] Aviso na tentativa de busca por '260006/017555/2026': Message: 
+Stacktrace:
+	msedgedriver!GetHandleVerifier [0x7ff624911bf5+4ca5]
+	msedgedriver!(No symbol) [0x7ff624862774]
+	msedgedriver!GetHandleVerifier [0x7ff624c913cf+38447f]
+	msedgedriver!(No symbol) [0x7ff62463fed8]
+	msedgedriver!(No symbol) [0x7ff62464015a]
+	msedgedriver!(No symbol) [0x7ff62467fd27]
+	msedgedriver!(No symbol) [0x7ff62463615f]
+	msedgedriver!(No symbol) [0x7ff62467d968]
+	msedgedriver!(No symbol) [0x7ff62463599c]
+	msedgedriver!(No symbol) [0x7ff624634c1d]
+	msedgedriver!(No symbol) [0x7ff6246357c3]
+	msedgedriver!(No symbol) [0x7ff62476c442]
+	msedgedriver!(No symbol) [0x7ff62477be69]
+	msedgedriver!GetHandleVerifier [0x7ff6249b9b25+acbd5]
+	msedgedriver!GetHandleVerifier [0x7ff6249c0001+b30b1]
+	msedgedriver!(No symbol) [0x7ff62486e4ef]
+	msedgedriver!(No symbol) [0x7ff624868ec4]
+	msedgedriver!(No symbol) [0x7ff624868fea]
+	msedgedriver!(No symbol) [0x7ff62485a5a8]
+	KERNEL32!BaseThreadInitThunk [0x7ff98936cd87+17]
+	ntdll!RtlUserThreadStart [0x7ff98ab4caec+2c]
+
+[19:34:37] Falha ao pesquisar/abrir o processo SEI-260006/017555/2026 após tentar formatos alternativos.
+[19:34:37] Aviso: Falha ao abrir o processo SEI-260006/017555/2026 (não localizado ou restrito).
+[19:34:37] [2/23] Inspecionando processo: SEI-260006/001087/2026
+[19:34:37] Digitando processo SEI-260006/001087/2026 no campo de busca da janela...
+[19:35:03] Aviso na tentativa de busca por 'SEI-260006/001087/2026': Message: 
+Stacktrace:
+	msedgedriver!GetHandleVerifier [0x7ff624911bf5+4ca5]
+	msedgedriver!(No symbol) [0x7ff624862774]
+	msedgedriver!GetHandleVerifier [0x7ff624c913cf+38447f]
+	msedgedriver!(No symbol) [0x7ff62463fed8]
+	msedgedriver!(No symbol) [0x7ff62464015a]
+	msedgedriver!(No symbol) [0x7ff62467fd27]
+	msedgedriver!(No symbol) [0x7ff62463615f]
+	msedgedriver!(No symbol) [0x7ff62467d968]
+	msedgedriver!(No symbol) [0x7ff62463599c]
+	msedgedriver!(No symbol) [0x7ff624634c1d]
+	msedgedriver!(No symbol) [0x7ff6246357c3]
+	msedgedriver!(No symbol) [0x7ff62476c442]
+	msedgedriver!(No symbol) [0x7ff62477be69]
+	msedgedriver!GetHandleVerifier [0x7ff6249b9b25+acbd5]
+	msedgedriver!GetHandleVerifier [0x7ff6249c0001+b30b1]
+	msedgedriver!(No symbol) [0x7ff62486e4ef]
+	msedgedriver!(No symbol) [0x7ff624868ec4]
+	msedgedriver!(No symbol) [0x7ff624868fea]
+	msedgedriver!(No symbol) [0x7ff62485a5a8]
+	KERNEL32!BaseThreadInitThunk [0x7ff98936cd87+17]
+	ntdll!RtlUserThreadStart [0x7ff98ab4caec+2c]
+
+[19:35:26] Aviso na tentativa de busca por '260006/001087/2026': Message: 
+Stacktrace:
+	msedgedriver!GetHandleVerifier [0x7ff624911bf5+4ca5]
+	msedgedriver!(No symbol) [0x7ff624862774]
+	msedgedriver!GetHandleVerifier [0x7ff624c913cf+38447f]
+	msedgedriver!(No symbol) [0x7ff62463fed8]
+	msedgedriver!(No symbol) [0x7ff62464015a]
+	msedgedriver!(No symbol) [0x7ff62467fd27]
+	msedgedriver!(No symbol) [0x7ff62463615f]
+	msedgedriver!(No symbol) [0x7ff62467d968]
+	msedgedriver!(No symbol) [0x7ff62463599c]
+	msedgedriver!(No symbol) [0x7ff624634c1d]
+	msedgedriver!(No symbol) [0x7ff6246357c3]
+	msedgedriver!(No symbol) [0x7ff62476c442]
+	msedgedriver!(No symbol) [0x7ff62477be69]
+	msedgedriver!GetHandleVerifier [0x7ff6249b9b25+acbd5]
+	msedgedriver!GetHandleVerifier [0x7ff6249c0001+b30b1]
+	msedgedriver!(No symbol) [0x7ff62486e4ef]
+	msedgedriver!(No symbol) [0x7ff624868ec4]
+	msedgedriver!(No symbol) [0x7ff624868fea]
+	msedgedriver!(No symbol) [0x7ff62485a5a8]
+	KERNEL32!BaseThreadInitThunk [0x7ff98936cd87+17]
+	ntdll!RtlUserThreadStart [0x7ff98ab4caec+2c]
+
+[19:35:26] Falha ao pesquisar/abrir o processo SEI-260006/001087/2026 após tentar formatos alternativos.
+[19:35:26] Aviso: Falha ao abrir o processo SEI-260006/001087/2026 (não localizado ou restrito).
+[19:35:26] [3/23] Inspecionando processo: SEI-260006/054138/2025
+[19:35:26] Digitando processo SEI-260006/054138/2025 no campo de busca da janela...
+[19:35:51] Aviso na tentativa de busca por 'SEI-260006/054138/2025': Message: 
+Stacktrace:
+	msedgedriver!GetHandleVerifier [0x7ff624911bf5+4ca5]
+	msedgedriver!(No symbol) [0x7ff624862774]
+	msedgedriver!GetHandleVerifier [0x7ff624c913cf+38447f]
+	msedgedriver!(No symbol) [0x7ff62463fed8]
+	msedgedriver!(No symbol) [0x7ff62464015a]
+	msedgedriver!(No symbol) [0x7ff62467fd27]
+	msedgedriver!(No symbol) [0x7ff62463615f]
+	msedgedriver!(No symbol) [0x7ff62467d968]
+	msedgedriver!(No symbol) [0x7ff62463599c]
+	msedgedriver!(No symbol) [0x7ff624634c1d]
+	msedgedriver!(No symbol) [0x7ff6246357c3]
+	msedgedriver!(No symbol) [0x7ff62476c442]
+	msedgedriver!(No symbol) [0x7ff62477be69]
+	msedgedriver!GetHandleVerifier [0x7ff6249b9b25+acbd5]
+	msedgedriver!GetHandleVerifier [0x7ff6249c0001+b30b1]
+	msedgedriver!(No symbol) [0x7ff62486e4ef]
+	msedgedriver!(No symbol) [0x7ff624868ec4]
+	msedgedriver!(No symbol) [0x7ff624868fea]
+	msedgedriver!(No symbol) [0x7ff62485a5a8]
+	KERNEL32!BaseThreadInitThunk [0x7ff98936cd87+17]
+	ntdll!RtlUserThreadStart [0x7ff98ab4caec+2c]
+
+[19:36:14] Aviso na tentativa de busca por '260006/054138/2025': Message: 
+Stacktrace:
+	msedgedriver!GetHandleVerifier [0x7ff624911bf5+4ca5]
+	msedgedriver!(No symbol) [0x7ff624862774]
+	msedgedriver!GetHandleVerifier [0x7ff624c913cf+38447f]
+	msedgedriver!(No symbol) [0x7ff62463fed8]
+	msedgedriver!(No symbol) [0x7ff62464015a]
+	msedgedriver!(No symbol) [0x7ff62467fd27]
+	msedgedriver!(No symbol) [0x7ff62463615f]
+	msedgedriver!(No symbol) [0x7ff62467d968]
+	msedgedriver!(No symbol) [0x7ff62463599c]
+	msedgedriver!(No symbol) [0x7ff624634c1d]
+	msedgedriver!(No symbol) [0x7ff6246357c3]
+	msedgedriver!(No symbol) [0x7ff62476c442]
+	msedgedriver!(No symbol) [0x7ff62477be69]
+	msedgedriver!GetHandleVerifier [0x7ff6249b9b25+acbd5]
+	msedgedriver!GetHandleVerifier [0x7ff6249c0001+b30b1]
+	msedgedriver!(No symbol) [0x7ff62486e4ef]
+	msedgedriver!(No symbol) [0x7ff624868ec4]
+	msedgedriver!(No symbol) [0x7ff624868fea]
+	msedgedriver!(No symbol) [0x7ff62485a5a8]
+	KERNEL32!BaseThreadInitThunk [0x7ff98936cd87+17]
+	ntdll!RtlUserThreadStart [0x7ff98ab4caec+2c]
+
+[19:36:14] Falha ao pesquisar/abrir o processo SEI-260006/054138/2025 após tentar formatos alternativos.
+[19:36:14] Aviso: Falha ao abrir o processo SEI-260006/054138/2025 (não localizado ou restrito).
+[19:36:14] [4/23] Inspecionando processo: SEI-260006/006535/2026
+[19:36:14] Digitando processo SEI-260006/006535/2026 no campo de busca da janela...
+[19:36:39] Aviso na tentativa de busca por 'SEI-260006/006535/2026': Message: 
+Stacktrace:
+	msedgedriver!GetHandleVerifier [0x7ff624911bf5+4ca5]
+	msedgedriver!(No symbol) [0x7ff624862774]
+	msedgedriver!GetHandleVerifier [0x7ff624c913cf+38447f]
+	msedgedriver!(No symbol) [0x7ff62463fed8]
+	msedgedriver!(No symbol) [0x7ff62464015a]
+	msedgedriver!(No symbol) [0x7ff62467fd27]
+	msedgedriver!(No symbol) [0x7ff62463615f]
+	msedgedriver!(No symbol) [0x7ff62467d968]
+	msedgedriver!(No symbol) [0x7ff62463599c]
+	msedgedriver!(No symbol) [0x7ff624634c1d]
+	msedgedriver!(No symbol) [0x7ff6246357c3]
+	msedgedriver!(No symbol) [0x7ff62476c442]
+	msedgedriver!(No symbol) [0x7ff62477be69]
+	msedgedriver!GetHandleVerifier [0x7ff6249b9b25+acbd5]
+	msedgedriver!GetHandleVerifier [0x7ff6249c0001+b30b1]
+	msedgedriver!(No symbol) [0x7ff62486e4ef]
+	msedgedriver!(No symbol) [0x7ff624868ec4]
+	msedgedriver!(No symbol) [0x7ff624868fea]
+	msedgedriver!(No symbol) [0x7ff62485a5a8]
+	KERNEL32!BaseThreadInitThunk [0x7ff98936cd87+17]
+	ntdll!RtlUserThreadStart [0x7ff98ab4caec+2c]
+
+[19:36:56] Aviso na tentativa de busca por '260006/006535/2026': Message: target frame detached
+  (failed to check if window was closed: disconnected: Unable to receive message from renderer)
+  (Session info: MicrosoftEdge=153.0.4234.32)
+Stacktrace:
+	msedgedriver!GetHandleVerifier [0x7ff624911bf5+4ca5]
+	msedgedriver!(No symbol) [0x7ff624862774]
+	msedgedriver!(No symbol) [0x7ff6245f4513]
+	msedgedriver!(No symbol) [0x7ff6245e6fa8]
+	msedgedriver!(No symbol) [0x7ff6245e610d]
+	msedgedriver!(No symbol) [0x7ff624601758]
+	msedgedriver!(No symbol) [0x7ff624665c65]
+	msedgedriver!(No symbol) [0x7ff62467d26f]
+	msedgedriver!(No symbol) [0x7ff62463599c]
+	msedgedriver!(No symbol) [0x7ff624634c1d]
+	msedgedriver!(No symbol) [0x7ff6246357c3]
+	msedgedriver!(No symbol) [0x7ff62476c442]
+	msedgedriver!(No symbol) [0x7ff62477be69]
+	msedgedriver!GetHandleVerifier [0x7ff6249b9b25+acbd5]
+	msedgedriver!GetHandleVerifier [0x7ff6249c0001+b30b1]
+	msedgedriver!(No symbol) [0x7ff62486e4ef]
+	msedgedriver!(No symbol) [0x7ff624868ec4]
+	msedgedriver!(No symbol) [0x7ff624868fea]
+	msedgedriver!(No symbol) [0x7ff62485a5a8]
+	KERNEL32!BaseThreadInitThunk [0x7ff98936cd87+17]
+	ntdll!RtlUserThreadStart [0x7ff98ab4caec+2c]
+
+[19:36:56] Falha ao pesquisar/abrir o processo SEI-260006/006535/2026 após tentar formatos alternativos.
+[19:36:56] Aviso: Falha ao abrir o processo SEI-260006/006535/2026 (não localizado ou restrito).
+[19:36:56] [5/23] Inspecionando processo: SEI-260006/017550/2026
+[19:36:56] Digitando processo SEI-260006/017550/2026 no campo de busca da janela...
+[19:36:56] Erro ao inspecionar SEI-260006/017550/2026: Message: invalid session id: session deleted as the browser has closed the connection
+from disconnected: not connected to DevTools
+  (Session info: MicrosoftEdge=153.0.4234.32); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#invalidsessionidexception
+Stacktrace:
+	msedgedriver!GetHandleVerifier [0x7ff624911bf5+4ca5]
+	msedgedriver!(No symbol) [0x7ff624862774]
+	msedgedriver!GetHandleVerifier [0x7ff624c913cf+38447f]
+	msedgedriver!(No symbol) [0x7ff6245e5f3a]
+	msedgedriver!(No symbol) [0x7ff624601758]
+	msedgedriver!(No symbol) [0x7ff624665c65]
+	msedgedriver!(No symbol) [0x7ff62467d26f]
+	msedgedriver!(No symbol) [0x7ff62463599c]
+	msedgedriver!(No symbol) [0x7ff624634c1d]
+	msedgedriver!(No symbol) [0x7ff6246357c3]
+	msedgedriver!(No symbol) [0x7ff62476c442]
+	msedgedriver!(No symbol) [0x7ff62477be69]
+	msedgedriver!GetHandleVerifier [0x7ff6249b9b25+acbd5]
+	msedgedriver!GetHandleVerifier [0x7ff6249c0001+b30b1]
+	msedgedriver!(No symbol) [0x7ff62486e4ef]
+	msedgedriver!(No symbol) [0x7ff624868ec4]
+	msedgedriver!(No symbol) [0x7ff624868fea]
+	msedgedriver!(No symbol) [0x7ff62485a5a8]
+	KERNEL32!BaseThreadInitThunk [0x7ff98936cd87+17]
+	ntdll!RtlUserThreadStart [0x7ff98ab4caec+2c]
+
+[19:36:56] Encerrando sessão do navegador...
+[19:36:58] ERRO FATAL NA EXECUÇÃO: Message: invalid session id; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#invalidsessionidexception
+Stacktrace:
+	msedgedriver!GetHandleVerifier [0x7ff624911bf5+4ca5]
+	msedgedriver!(No symbol) [0x7ff624862774]
+	msedgedriver!(No symbol) [0x7ff6245f4513]
+	msedgedriver!(No symbol) [0x7ff6246343d5]
+	msedgedriver!(No symbol) [0x7ff624660a52]
+	msedgedriver!(No symbol) [0x7ff6245ebfd9]
+	msedgedriver!(No symbol) [0x7ff62465d153]
+	msedgedriver!(No symbol) [0x7ff62465c9c2]
+	msedgedriver!(No symbol) [0x7ff6245cc23b]
+	msedgedriver!(No symbol) [0x7ff6245cc832]
+	msedgedriver!(No symbol) [0x7ff6245ccd25]
+	msedgedriver!(No symbol) [0x7ff62476c442]
+	msedgedriver!(No symbol) [0x7ff62477be69]
+	msedgedriver!GetHandleVerifier [0x7ff6249b9b25+acbd5]
+	msedgedriver!GetHandleVerifier [0x7ff6249c0001+b30b1]
+	msedgedriver!(No symbol) [0x7ff62486e4ef]
+	msedgedriver!(No symbol) [0x7ff6245cbefe]
+	msedgedriver!GetHandleVerifier [0x7ff624a97968+18aa18]
+	KERNEL32!BaseThreadInitThunk [0x7ff98936cd87+17]
+	ntdll!RtlUserThreadStart [0x7ff98ab4caec+2c]
+
+[19:48:23] Iniciando esteira para módulo: Monitoramento atas feitas
+[19:48:23] Unidade de lotação selecionada: CINQA
+[19:48:23] Carregando lista de processos alvos...
+[19:48:24] 23 processo(s) localizado(s) para inspeção.
+[19:48:24] Iniciando navegador web (Microsoft Edge / Selenium)...
+[19:48:26] Verificando autenticação no SEI...
+[19:48:26] Tentando login automático no SEI para o órgão 'UERJ'...
+[19:48:28] Atenção: Aguardando autenticação no SEI... Por favor, conclua o acesso no navegador aberto (Gov.br, Certificado Digital ou Usuário/Senha).
+[19:48:44] Ainda aguardando login no SEI... (tempo restante: 73s)
+[19:49:01] Ainda aguardando login no SEI... (tempo restante: 56s)
+[19:49:17] Ainda aguardando login no SEI... (tempo restante: 40s)
+[19:50:09] Iniciando esteira para módulo: Monitoramento atas feitas
+[19:50:09] Unidade de lotação selecionada: CINQA
+[19:50:09] Carregando lista de processos alvos...
+[19:50:10] 23 processo(s) localizado(s) para inspeção.
+[19:50:10] Iniciando navegador web (Microsoft Edge / Selenium)...
+[19:50:33] Verificando autenticação no SEI...
+[19:50:33] Tentando login automático no SEI para o órgão 'UERJ'...
+[19:50:36] Atenção: Aguardando autenticação no SEI... Por favor, conclua o acesso no navegador aberto (Gov.br, Certificado Digital ou Usuário/Senha).
+[19:50:52] Ainda aguardando login no SEI... (tempo restante: 73s)
+[19:51:09] Ainda aguardando login no SEI... (tempo restante: 56s)
+[19:51:26] Ainda aguardando login no SEI... (tempo restante: 39s)
+[19:51:42] Ainda aguardando login no SEI... (tempo restante: 23s)
+[19:51:59] Ainda aguardando login no SEI... (tempo restante: 6s)
+[19:52:07] Tempo limite (90s) esgotado aguardando login no SEI.
+[19:52:07] ERRO: Autenticação no SEI não foi confirmada dentro do prazo. Monitoramento cancelado.
+[19:52:07] Encerrando sessão do navegador...
